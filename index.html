@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Tambah Data Sertifikat AIDA</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #f8fafc;
+        margin: 0;
+        padding: 40px 20px;
+        color: #0f172a;
+      }
+      .admin-card {
+        max-width: 500px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 32px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      }
+      h2 {
+        margin-top: 0;
+        margin-bottom: 24px;
+        text-align: center;
+        font-size: 1.4rem;
+      }
+      .form-group {
+        margin-bottom: 18px;
+      }
+      label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #334155;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        outline: none;
+      }
+      input:focus,
+      textarea:focus {
+        border-color: #0f172a;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background-color: #0f172a;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background-color: #334155;
+      }
+      button:disabled {
+        background-color: #94a3b8;
+        cursor: not-allowed;
+      }
+      #status {
+        margin-top: 20px;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        display: none;
+        text-align: center;
+      }
+      .status-loading {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      .status-success {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+      }
+      .status-error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-card">
+      <h2>Tambah Sertifikat Baru</h2>
+
+      <form
+        id="add-cert-form"
+        onsubmit="
+          event.preventDefault();
+          submitNewCertificate();
+        "
+      >
+        <div class="form-group">
+          <label>No. Sertifikat (ID)</label>
+          <input
+            type="text"
+            id="cert-id"
+            placeholder="Contoh: 181/AIDA/MRM/X/2025"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Nama Lengkap Penerima</label>
+          <input
+            type="text"
+            id="cert-name"
+            placeholder="Contoh: Nama Peserta"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Program / Pelatihan</label>
+          <textarea
+            id="cert-course"
+            rows="2"
+            placeholder="Contoh: Competency Enhancement Training for Facilitators"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Tanggal Terbit</label>
+          <input
+            type="text"
+            id="cert-date"
+            placeholder="Contoh: 28–30 April 2025"
+            required
+          />
+        </div>
+
+        <button type="submit" id="btn-submit">Simpan ke GitHub</button>
+      </form>
+
+      <div id="status"></div>
+    </div>
+
+    <script>
+      // CONFIGURASI GITHUB REPOSITORI ANDA
+      const GH_CONFIG = {
+        owner: "jay-wasfound", // Username GitHub sesuai CDN URL Anda
+        repo: "Certificate-Verification-AIDA-Consultant", // Nama repo Anda
+        path: "js/certification_database.js", // Path lokasi file JS
+        branch: "main", // atau "master"
+        storageTokenKey: "AIDA_GH_ADMIN_TOKEN",
+      };
+
+      async function submitNewCertificate() {
+        const btn = document.getElementById("btn-submit");
+        const statusDiv = document.getElementById("status");
+
+        // 1. Ambil atau minta PAT Token GitHub (Token disimpan di browser Anda)
+        let token = localStorage.getItem(GH_CONFIG.storageTokenKey);
+        if (!token) {
+          token = prompt(
+            "Masukkan GitHub Personal Access Token (PAT) Anda (Diminta sekali saja):",
+          );
+          if (!token) return;
+          localStorage.setItem(GH_CONFIG.storageTokenKey, token);
+        }
+
+        // Capture Data Form
+        const newEntry = {
+          id: document.getElementById("cert-id").value.trim(),
+          name: document.getElementById("cert-name").value.trim(),
+          course: document.getElementById("cert-course").value.trim(),
+          date: document.getElementById("cert-date").value.trim(),
+          status: "Valid / Terverifikasi",
+        };
+
+        // Update UI Status
+        btn.disabled = true;
+        statusDiv.style.display = "block";
+        statusDiv.className = "status-loading";
+        statusDiv.innerText = "Mengambil file js dari GitHub...";
+
+        try {
+          const apiUrl = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${GH_CONFIG.path}?ref=${GH_CONFIG.branch}`;
+
+          // 2. Fetch file JavaScript lama dari GitHub
+          const resGet = await fetch(apiUrl, {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+            },
+          });
+
+          if (resGet.status === 401 || resGet.status === 403) {
+            localStorage.removeItem(GH_CONFIG.storageTokenKey);
+            throw new Error(
+              "Token GitHub tidak valid/kadaluwarsa. Silakan refresh dan masukkan token baru.",
+            );
+          }
+
+          const fileData = await resGet.json();
+
+          // Decode isi file JS dari Base64 ke String UTF-8
+          const rawJsContent = decodeURIComponent(
+            escape(atob(fileData.content)),
+          );
+
+          // 3. Trik Memanipulasi Kode JS: Sisipkan data baru tepat sebelum kurung siku tutup `];`
+          const lastIndex = rawJsContent.lastIndexOf("];");
+          if (lastIndex === -1) {
+            throw new Error(
+              "Format file JS tidak sesuai (tidak ditemukan struktur array '];').",
+            );
+          }
+
+          // Format string objek JS baru
+          const formattedNewObject = `,\n  {\n    id: "${newEntry.id}",\n    name: "${newEntry.name}",\n    course: "${newEntry.course.replace(/"/g, '\\"')}",\n    date: "${newEntry.date}",\n    status: "${newEntry.status}"\n  }`;
+
+          // Gabungkan konten lama + objek baru + penutup array `];`
+          const updatedJsContent =
+            rawJsContent.substring(0, lastIndex) + formattedNewObject + "\n];";
+
+          statusDiv.innerText = "Mengunggah update ke GitHub...";
+
+          // Encode kembali konten baru ke Base64
+          const encodedContent = btoa(
+            unescape(encodeURIComponent(updatedJsContent)),
+          );
+
+          // 4. Kirim PUT Request ke GitHub API untuk simpan file
+          const resPut = await fetch(apiUrl, {
+            method: "PUT",
+            headers: {
+              Authorization: `token ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/vnd.github.v3+json",
+            },
+            body: JSON.stringify({
+              message: `Add new certificate: ${newEntry.id} - ${newEntry.name}`,
+              content: encodedContent,
+              sha: fileData.sha, // Memastikan kita meng-overwrite versi file yang tepat
+            }),
+          });
+
+          if (resPut.ok) {
+            statusDiv.className = "status-success";
+            statusDiv.innerHTML = `✔ <strong>Berhasil!</strong><br>Sertifikat untuk <strong>${newEntry.name}</strong> (${newEntry.id}) telah tersimpan ke GitHub.`;
+            document.getElementById("add-cert-form").reset();
+          } else {
+            const errJson = await resPut.json();
+            throw new Error(errJson.message || "Gagal menyimpan ke GitHub.");
+          }
+        } catch (err) {
+          statusDiv.className = "status-error";
+          statusDiv.innerText = "✖ " + err.message;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
