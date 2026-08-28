@@ -167,12 +167,10 @@
         const btn = document.getElementById("btn-submit");
         const statusDiv = document.getElementById("status");
 
-        // 1. Ambil atau minta PAT Token GitHub (Token disimpan di browser Anda)
+        // 1. Ambil/minta PAT Token GitHub
         let token = localStorage.getItem(GH_CONFIG.storageTokenKey);
         if (!token) {
-          token = prompt(
-            "Masukkan GitHub Personal Access Token (PAT) Anda (Diminta sekali saja):",
-          );
+          token = prompt("Masukkan GitHub Personal Access Token (PAT) Anda:");
           if (!token) return;
           localStorage.setItem(GH_CONFIG.storageTokenKey, token);
         }
@@ -195,7 +193,7 @@
         try {
           const apiUrl = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${GH_CONFIG.path}?ref=${GH_CONFIG.branch}`;
 
-          // 2. Fetch file JavaScript lama dari GitHub
+          // 2. Fetch file JavaScript dari GitHub
           const resGet = await fetch(apiUrl, {
             headers: {
               Authorization: `token ${token}`,
@@ -212,34 +210,38 @@
 
           const fileData = await resGet.json();
 
-          // Decode isi file JS dari Base64 ke String UTF-8
+          // Decode dari Base64 ke String
           const rawJsContent = decodeURIComponent(
             escape(atob(fileData.content)),
           );
 
-          // 3. Trik Memanipulasi Kode JS: Sisipkan data baru tepat sebelum kurung siku tutup `];`
-          const lastIndex = rawJsContent.lastIndexOf("];");
-          if (lastIndex === -1) {
+          // 3. Ekstrak isi array menggunakan Regex & Evaluasi dengan aman
+          const arrayMatch = rawJsContent.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          let currentArray = [];
+
+          if (arrayMatch) {
+            // Mengubah string JSON/Array menjadi Array Object JavaScript
+            currentArray = new Function(`return ${arrayMatch[0]}`)();
+          } else {
             throw new Error(
-              "Format file JS tidak sesuai (tidak ditemukan struktur array '];').",
+              "Gagal membaca struktur array pada file certification_database.js",
             );
           }
 
-          // Format string objek JS baru
-          const formattedNewObject = `,\n  {\n    id: "${newEntry.id}",\n    name: "${newEntry.name}",\n    course: "${newEntry.course.replace(/"/g, '\\"')}",\n    date: "${newEntry.date}",\n    status: "${newEntry.status}"\n  }`;
+          // 4. Masukkan data baru ke dalam Array
+          currentArray.push(newEntry);
 
-          // Gabungkan konten lama + objek baru + penutup array `];`
-          const updatedJsContent =
-            rawJsContent.substring(0, lastIndex) + formattedNewObject + "\n];";
+          // 5. Format kembali menjadi struktur file JavaScript yang rapi
+          const updatedJsContent = `const certificatesDatabase = ${JSON.stringify(currentArray, null, 2)};\n`;
 
           statusDiv.innerText = "Mengunggah update ke GitHub...";
 
-          // Encode kembali konten baru ke Base64
+          // Encode kembali ke Base64
           const encodedContent = btoa(
             unescape(encodeURIComponent(updatedJsContent)),
           );
 
-          // 4. Kirim PUT Request ke GitHub API untuk simpan file
+          // 6. Kirim PUT Request ke GitHub API
           const resPut = await fetch(apiUrl, {
             method: "PUT",
             headers: {
@@ -250,7 +252,7 @@
             body: JSON.stringify({
               message: `Add new certificate: ${newEntry.id} - ${newEntry.name}`,
               content: encodedContent,
-              sha: fileData.sha, // Memastikan kita meng-overwrite versi file yang tepat
+              sha: fileData.sha,
             }),
           });
 
