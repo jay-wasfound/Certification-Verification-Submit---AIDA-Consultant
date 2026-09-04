@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Certifacate Verification Submit</title>
+    <title>Certificate Verification Submit</title>
     <style>
       body {
         font-family:
@@ -22,6 +22,15 @@
         border: 1px solid #e2e8f0;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
       }
+
+      /* Style untuk Logo PT */
+      .brand-logo {
+        display: block;
+        max-width: 100%; /* Batas lebar logo */
+        margin: 0 auto 20px auto; /* Ditengah dan memberi jarak ke judul */
+        object-fit: contain;
+      }
+
       h2 {
         margin-top: 0;
         margin-bottom: 24px;
@@ -98,6 +107,13 @@
   </head>
   <body>
     <div class="admin-card">
+      <!-- Tag Gambar Logo disisipkan di sini -->
+      <img
+        src="logo.png"
+        alt="Logo PT"
+        class="brand-logo"
+      />
+
       <h2>Tambah Sertifikat Baru</h2>
 
       <form
@@ -147,7 +163,7 @@
           />
         </div>
 
-        <button type="submit" id="btn-submit">Simpan ke GitHub</button>
+        <button type="submit" id="btn-submit">Kirim ke Repository</button>
       </form>
 
       <div id="status"></div>
